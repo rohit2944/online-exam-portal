@@ -208,26 +208,29 @@ const initialDB: MockDB = {
     {
       id: 'q-2',
       subjectId: 'subject-1',
-      type: 'tf',
-      text: 'A binary search tree always has a height of O(log n), regardless of the order of insertion.',
-      correctAnswers: ['false'],
+      type: 'mcq',
+      text: 'Does a binary search tree always have a height of O(log n), regardless of insertion order?',
+      options: ['Yes, always', 'No, it can degenerate to O(N)', 'Only if it has even nodes', 'Only if root is depth 0'],
+      correctAnswers: ['No, it can degenerate to O(N)'],
       maxMarks: 2,
       category: 'Medium'
     },
     {
       id: 'q-3',
       subjectId: 'subject-1',
-      type: 'fill_in_the_blank',
-      text: 'The worst-case time complexity of searching in a Hash Table with chaining is O(_____).',
-      correctAnswers: ['N', 'n'],
+      type: 'mcq',
+      text: 'What is the worst-case time complexity of searching in a Hash Table with chaining?',
+      options: ['O(1)', 'O(log N)', 'O(N)', 'O(N^2)'],
+      correctAnswers: ['O(N)'],
       maxMarks: 3,
       category: 'Medium'
     },
     {
       id: 'q-4',
       subjectId: 'subject-1',
-      type: 'numerical',
-      text: 'What is the maximum number of nodes in a binary tree of depth/height 4? (Assume root is at depth 0)',
+      type: 'mcq',
+      text: 'What is the maximum number of nodes in a binary tree of depth 4 (assuming root is at depth 0)?',
+      options: ['15', '31', '63', '16'],
       correctAnswers: ['31'],
       maxMarks: 3,
       category: 'Medium'
@@ -235,33 +238,30 @@ const initialDB: MockDB = {
     {
       id: 'q-5',
       subjectId: 'subject-1',
-      type: 'matching',
-      text: 'Match the data structures with their primary operational time complexities:',
-      matchingPairs: [
-        { left: 'Stack Push', right: 'O(1)' },
-        { left: 'Binary Search (Sorted Array)', right: 'O(log n)' },
-        { left: 'Bubble Sort (Worst Case)', right: 'O(n^2)' },
-        { left: 'Linear Search', right: 'O(n)' }
-      ],
-      correctAnswers: [], // Graded programmatically via matchingPairs
+      type: 'mcq',
+      text: 'Which data structure offers O(1) time complexity for both Push and Pop operations?',
+      options: ['Stack', 'Array', 'Binary Search Tree', 'Graph'],
+      correctAnswers: ['Stack'],
       maxMarks: 4,
       category: 'Hard'
     },
     {
       id: 'q-6',
       subjectId: 'subject-1',
-      type: 'short_answer',
-      text: 'Explain the difference between a Queue and a Stack in one or two sentences.',
-      correctAnswers: ['first in first out', 'last in first out', 'fifo', 'lifo', 'enqueue', 'pop'],
+      type: 'mcq',
+      text: 'What is the primary difference in access order between a Queue and a Stack?',
+      options: ['Queue is FIFO, Stack is LIFO', 'Queue is LIFO, Stack is FIFO', 'Both are LIFO', 'Both are Random Access'],
+      correctAnswers: ['Queue is FIFO, Stack is LIFO'],
       maxMarks: 5,
       category: 'Easy'
     },
     {
       id: 'q-7',
       subjectId: 'subject-1',
-      type: 'essay',
-      text: 'Provide a detailed explanation of red-black tree balancing operations (rotations and color changes) during node insertion. Explain why a red-black tree guarantees O(log n) height.',
-      correctAnswers: [], // Manual grading required
+      type: 'mcq',
+      text: 'Which tree structure guarantees O(log n) height using red and black node colorings?',
+      options: ['B-Tree', 'Red-Black Tree', 'Binary Heap', 'Trie'],
+      correctAnswers: ['Red-Black Tree'],
       maxMarks: 10,
       category: 'Hard'
     },
@@ -278,26 +278,29 @@ const initialDB: MockDB = {
     {
       id: 'q-alg-2',
       subjectId: 'subject-2',
-      type: 'short_answer',
-      text: 'Name one sorting algorithm that is stable and has O(n log n) worst-case time complexity.',
-      correctAnswers: ['merge sort', 'mergesort', 'merge'],
+      type: 'mcq',
+      text: 'Which of the following is a stable sorting algorithm with O(n log n) worst-case time complexity?',
+      options: ['Quick Sort', 'Heap Sort', 'Merge Sort', 'Selection Sort'],
+      correctAnswers: ['Merge Sort'],
       maxMarks: 3,
       category: 'Medium'
     },
     {
       id: 'q-alg-3',
       subjectId: 'subject-2',
-      type: 'essay',
-      text: 'Describe the core idea of dynamic programming and provide an example scenario where it is superior to simple recursion or divide-and-conquer. Discuss optimal substructure and overlapping subproblems.',
-      correctAnswers: [],
+      type: 'mcq',
+      text: 'Dynamic Programming is best suited for problems exhibiting which two key properties?',
+      options: ['Optimal Substructure & Overlapping Subproblems', 'Greedy Choice & Constant Time', 'LIFO Order & FIFO Order', 'Random Access & Hashing'],
+      correctAnswers: ['Optimal Substructure & Overlapping Subproblems'],
       maxMarks: 10,
       category: 'Hard'
     },
     {
       id: 'q-alg-4',
       subjectId: 'subject-2',
-      type: 'numerical',
+      type: 'mcq',
       text: 'In a binary search of 1024 sorted items, what is the maximum number of comparison steps needed in the worst case?',
+      options: ['5', '10', '100', '512'],
       correctAnswers: ['10'],
       maxMarks: 5,
       category: 'Medium'
@@ -308,7 +311,7 @@ const initialDB: MockDB = {
       id: 'exam-c1',
       subjectId: 'subject-1',
       title: 'Data Structures Midterm 2026',
-      description: 'Comprehensive test covering stacks, queues, hash tables, and tree structures. Ensure fullscreen is active.',
+      description: 'Comprehensive MCQ test covering stacks, queues, hash tables, and tree structures.',
       durationMinutes: 45,
       totalMarks: 29,
       passingMarks: 15,
@@ -320,7 +323,7 @@ const initialDB: MockDB = {
       negativeMarkingEnabled: true,
       negativeMarkRate: 0.25,
       showOnePerPage: true,
-      dateScheduled: new Date(Date.now() + 2 * 60 * 1000).toISOString() // 2 minutes from now
+      dateScheduled: new Date(Date.now() + 2 * 60 * 1000).toISOString()
     },
     {
       id: 'exam-c2',
@@ -338,7 +341,7 @@ const initialDB: MockDB = {
       negativeMarkingEnabled: false,
       negativeMarkRate: 0.25,
       showOnePerPage: true,
-      dateScheduled: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // Tomorrow
+      dateScheduled: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
     }
   ],
   sessions: [
@@ -350,26 +353,16 @@ const initialDB: MockDB = {
       submitTime: '2026-07-30T10:35:00Z',
       responses: [
         { questionId: 'q-1', answer: 'Stack', isCorrect: true, marksObtained: 2 },
-        { questionId: 'q-2', answer: 'true', isCorrect: false, marksObtained: -0.5 },
-        { questionId: 'q-3', answer: 'N', isCorrect: true, marksObtained: 3 },
-        { questionId: 'q-4', answer: 31, isCorrect: true, marksObtained: 3 },
-        {
-          questionId: 'q-5',
-          answer: {
-            'Stack Push': 'O(1)',
-            'Binary Search (Sorted Array)': 'O(log n)',
-            'Bubble Sort (Worst Case)': 'O(n^2)',
-            'Linear Search': 'O(n)'
-          },
-          isCorrect: true,
-          marksObtained: 4
-        },
-        { questionId: 'q-6', answer: 'A Stack is LIFO whereas a Queue is FIFO.', isCorrect: true, marksObtained: 5 },
-        { questionId: 'q-7', answer: 'Red-black trees are balanced binary search trees that use node colors (red/black) and rotation operations (left/right) to keep the heights of paths within a factor of 2. This guarantees that basic operations take O(log n) time.', isCorrect: true, marksObtained: 8, gradedBy: 'exam-1', feedback: 'Good conceptual understanding. Missed explicit case details.' }
+        { questionId: 'q-2', answer: 'No, it can degenerate to O(N)', isCorrect: true, marksObtained: 2 },
+        { questionId: 'q-3', answer: 'O(N)', isCorrect: true, marksObtained: 3 },
+        { questionId: 'q-4', answer: '31', isCorrect: true, marksObtained: 3 },
+        { questionId: 'q-5', answer: 'Stack', isCorrect: true, marksObtained: 4 },
+        { questionId: 'q-6', answer: 'Queue is FIFO, Stack is LIFO', isCorrect: true, marksObtained: 5 },
+        { questionId: 'q-7', answer: 'Red-Black Tree', isCorrect: true, marksObtained: 10 }
       ],
       isSubmitted: true,
       isGraded: true,
-      finalScore: 24.5,
+      finalScore: 29,
       tabSwitchCount: 0,
       fullscreenExitCount: 0,
       ipAddress: '192.168.1.10',
@@ -401,10 +394,11 @@ export const loadDB = (): MockDB => {
   }
   try {
     const db = JSON.parse(data) as MockDB;
-    // Auto-migrate check: if examiner seed lacks teacherId, or exam-c2 is missing, reset cache to update schemas
+    // Auto-migrate check: enforce all-MCQ questions schema
     const exUser = db.users.find((u) => u.id === 'exam-1');
     const hasNewExam = db.exams.some((e) => e.id === 'exam-c2');
-    if (!exUser || !exUser.teacherId || !hasNewExam) {
+    const allMcq = db.questions.every((q) => q.type === 'mcq');
+    if (!exUser || !exUser.teacherId || !hasNewExam || !allMcq) {
       saveDB(initialDB);
       return initialDB;
     }

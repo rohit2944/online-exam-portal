@@ -783,16 +783,10 @@ export const ExaminerModule: React.FC<ExaminerModuleProps> = ({ currentUser, add
                   <label className="form-label">Question Type</label>
                   <select 
                     className="form-input"
-                    value={qType}
-                    onChange={(e) => setQType(e.target.value as QuestionType)}
+                    value="mcq"
+                    disabled
                   >
                     <option value="mcq">Multiple Choice Question (MCQ)</option>
-                    <option value="tf">True / False</option>
-                    <option value="fill_in_the_blank">Fill in the Blank</option>
-                    <option value="short_answer">Short Answer</option>
-                    <option value="essay">Essay / Long Answer</option>
-                    <option value="matching">Matching Pairs</option>
-                    <option value="numerical">Numerical Response</option>
                   </select>
                 </div>
                 <div>
