@@ -680,6 +680,7 @@ export const ExaminerModule: React.FC<ExaminerModuleProps> = ({ currentUser, add
                           <th>Subject</th>
                           <th>Obtained Score</th>
                           <th>Percentage</th>
+                          <th>Result Status</th>
                           <th>Evaluation Status</th>
                           <th>Security Alerts</th>
                         </tr>
@@ -712,6 +713,11 @@ export const ExaminerModule: React.FC<ExaminerModuleProps> = ({ currentUser, add
                               </td>
                               <td>
                                 <strong>{scorePct}%</strong>
+                              </td>
+                              <td>
+                                <span className={`badge ${isPass ? 'badge-success' : 'badge-danger'}`} style={{ fontWeight: 800 }}>
+                                  {isPass ? 'PASSED' : 'FAILED'}
+                                </span>
                               </td>
                               <td>
                                 <span className={`badge ${session.isGraded ? 'badge-success' : 'badge-warning'}`}>
