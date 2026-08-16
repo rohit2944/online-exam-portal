@@ -21,15 +21,19 @@ export const ExaminerModule: React.FC<ExaminerModuleProps> = ({ currentUser, add
     setDb(loadDB());
   };
 
-  // Find subjects managed by this examiner
+  // Find subjects managed by this examiner (fallback to all subjects if none explicitly assigned)
   const mySubjects = db.subjects.filter((s) => s.examinerIds.includes(currentUser.id));
-  const mySubjectIds = mySubjects.map((s) => s.id);
+  const effectiveSubjects = mySubjects.length > 0 ? mySubjects : db.subjects;
+  const effectiveSubjectIds = effectiveSubjects.map((s) => s.id);
+
+  // Subject filter state for Results & Reports
+  const [reportSubjectFilter, setReportSubjectFilter] = useState<string>('all');
 
   // --- QUESTION BANK STATES ---
   const [qModalOpen, setQModalOpen] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
   const [qText, setQText] = useState('');
-  const [qSubjectId, setQSubjectId] = useState(mySubjectIds[0] || '');
+  const [qSubjectId, setQSubjectId] = useState(effectiveSubjectIds[0] || '');
   const [qType, setQType] = useState<QuestionType>('mcq');
   const [qCategory, setQCategory] = useState<'Easy' | 'Medium' | 'Hard'>('Easy');
   const [qMaxMarks, setQMaxMarks] = useState(2);
@@ -92,7 +96,7 @@ export const ExaminerModule: React.FC<ExaminerModuleProps> = ({ currentUser, add
     } else {
       setEditingQuestion(null);
       setQText('');
-      setQSubjectId(mySubjectIds[0] || '');
+      setQSubjectId(effectiveSubjectIds[0] || '');
       setQType('mcq');
       setQCategory('Easy');
       setQMaxMarks(2);
@@ -204,7 +208,7 @@ export const ExaminerModule: React.FC<ExaminerModuleProps> = ({ currentUser, add
         parsed.forEach((q: any) => {
           const newQ: Question = {
             id: `q-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-            subjectId: q.subjectId || qSubjectId || mySubjectIds[0],
+            subjectId: q.subjectId || qSubjectId || effectiveSubjectIds[0],
             type: q.type || 'mcq',
             text: q.text || 'Imported Question',
             options: q.options,
@@ -344,14 +348,14 @@ export const ExaminerModule: React.FC<ExaminerModuleProps> = ({ currentUser, add
     reloadState();
   };
 
-  // Filter lists
-  const questionsOfMySubjects = db.questions.filter((q) => mySubjectIds.includes(q.subjectId));
-  const examsOfMySubjects = db.exams.filter((e) => mySubjectIds.includes(e.subjectId));
+  // Filter lists (uses effective subjects scope)
+  const questionsOfMySubjects = db.questions.filter((q) => effectiveSubjectIds.includes(q.subjectId));
+  const examsOfMySubjects = db.exams.filter((e) => effectiveSubjectIds.includes(e.subjectId));
   
-  // Ungraded sessions of my subjects
+  // Ungraded sessions
   const ungradedSessions = db.sessions.filter((s) => {
     const ex = db.exams.find((e) => e.id === s.examId);
-    return ex && mySubjectIds.includes(ex.subjectId) && s.isSubmitted && !s.isGraded;
+    return ex && effectiveSubjectIds.includes(ex.subjectId) && s.isSubmitted && !s.isGraded;
   });
 
   return (
@@ -603,81 +607,133 @@ export const ExaminerModule: React.FC<ExaminerModuleProps> = ({ currentUser, add
         {/* REPORTS SUBTAB */}
         {activeSubTab === 'reports' && (
           <div>
-            <h1 style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: '24px' }}>Results & Candidate Reports</h1>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
+              <h1 style={{ fontSize: '1.75rem', fontWeight: 800 }}>Results & Candidate Reports</h1>
+              
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <label className="form-label" style={{ margin: 0, whiteSpace: 'nowrap' }}>Filter Subject:</label>
+                <select 
+                  className="form-input"
+                  style={{ width: '220px' }}
+                  value={reportSubjectFilter}
+                  onChange={(e) => setReportSubjectFilter(e.target.value)}
+                >
+                  <option value="all">All Subjects</option>
+                  {db.subjects.map((sub) => (
+                    <option key={sub.id} value={sub.id}>{sub.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
             
             {(() => {
               const completedSessions = db.sessions.filter((s) => {
+                if (!s.isSubmitted) return false;
                 const ex = db.exams.find((e) => e.id === s.examId);
-                return ex && mySubjectIds.includes(ex.subjectId) && s.isSubmitted;
+                if (!ex) return false;
+                if (reportSubjectFilter !== 'all' && ex.subjectId !== reportSubjectFilter) {
+                  return false;
+                }
+                return true;
               });
 
               if (completedSessions.length === 0) {
                 return (
                   <div className="glass-panel" style={{ padding: '40px', textAlign: 'center' }}>
                     <h3>No reports found</h3>
-                    <p style={{ color: 'var(--text-secondary)', marginTop: '4px' }}>Students haven't taken or completed any exams in your subjects yet.</p>
+                    <p style={{ color: 'var(--text-secondary)', marginTop: '4px' }}>
+                      {reportSubjectFilter === 'all' 
+                        ? "No student exam submissions have been recorded yet." 
+                        : "No student submissions found for the selected subject."}
+                    </p>
                   </div>
                 );
               }
 
-              return (
-                <div className="table-container glass-panel">
-                  <table className="custom-table">
-                    <thead>
-                      <tr>
-                        <th>Candidate</th>
-                        <th>Exam Title</th>
-                        <th>Obtained Score</th>
-                        <th>Percentage</th>
-                        <th>Evaluation Status</th>
-                        <th>Security Alerts</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {completedSessions.map((session) => {
-                        const student = db.users.find((u) => u.id === session.studentId);
-                        const ex = db.exams.find((e) => e.id === session.examId);
-                        const scorePct = ex ? Math.round((session.finalScore / ex.totalMarks) * 100) : 0;
-                        const isPass = ex ? session.finalScore >= ex.passingMarks : false;
+              const totalGraded = completedSessions.filter((s) => s.isGraded).length;
+              const totalPending = completedSessions.length - totalGraded;
 
-                        return (
-                          <tr key={session.id}>
-                            <td>
-                              <strong>{student?.profileName}</strong>
-                              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>@{student?.username}</div>
-                            </td>
-                            <td>
-                              <strong>{ex?.title}</strong>
-                              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Scheduled Time: {ex?.dateScheduled ? new Date(ex.dateScheduled).toLocaleString() : 'N/A'}</div>
-                            </td>
-                            <td>
-                              <strong style={{ fontSize: '1rem', color: isPass ? 'var(--color-success)' : 'var(--color-danger)' }}>
-                                {session.finalScore} / {ex?.totalMarks} pts
-                              </strong>
-                            </td>
-                            <td>
-                              <strong>{scorePct}%</strong>
-                            </td>
-                            <td>
-                              <span className={`badge ${session.isGraded ? 'badge-success' : 'badge-warning'}`}>
-                                {session.isGraded ? 'Graded' : 'Descriptive Pending'}
-                              </span>
-                            </td>
-                            <td>
-                              {session.tabSwitchCount > 0 || session.fullscreenExitCount > 0 ? (
-                                <div style={{ fontSize: '0.8rem', color: 'var(--color-danger)' }}>
-                                  {session.tabSwitchCount > 0 && <div>{session.tabSwitchCount} Tab Switches</div>}
-                                  {session.fullscreenExitCount > 0 && <div>{session.fullscreenExitCount} Fullscreen Exits</div>}
-                                </div>
-                              ) : (
-                                <span className="badge badge-success">Clean Session</span>
-                              )}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+              return (
+                <div>
+                  {/* Summary Bar */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
+                    <div className="glass-panel" style={{ padding: '16px', textAlign: 'center' }}>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Submissions</span>
+                      <h3 style={{ fontSize: '1.5rem', fontWeight: 800, marginTop: '4px' }}>{completedSessions.length}</h3>
+                    </div>
+                    <div className="glass-panel" style={{ padding: '16px', textAlign: 'center' }}>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Graded Results</span>
+                      <h3 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-success)', marginTop: '4px' }}>{totalGraded}</h3>
+                    </div>
+                    <div className="glass-panel" style={{ padding: '16px', textAlign: 'center' }}>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Descriptive Pending</span>
+                      <h3 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-warning)', marginTop: '4px' }}>{totalPending}</h3>
+                    </div>
+                  </div>
+
+                  <div className="table-container glass-panel">
+                    <table className="custom-table">
+                      <thead>
+                        <tr>
+                          <th>Candidate</th>
+                          <th>Exam Title</th>
+                          <th>Subject</th>
+                          <th>Obtained Score</th>
+                          <th>Percentage</th>
+                          <th>Evaluation Status</th>
+                          <th>Security Alerts</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {completedSessions.map((session) => {
+                          const student = db.users.find((u) => u.id === session.studentId);
+                          const ex = db.exams.find((e) => e.id === session.examId);
+                          const sub = ex ? db.subjects.find((s) => s.id === ex.subjectId) : null;
+                          const scorePct = ex && ex.totalMarks > 0 ? Math.round((session.finalScore / ex.totalMarks) * 100) : 0;
+                          const isPass = ex ? session.finalScore >= ex.passingMarks : false;
+
+                          return (
+                            <tr key={session.id}>
+                              <td>
+                                <strong>{student?.profileName || 'Unknown Student'}</strong>
+                                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>@{student?.username || session.studentId}</div>
+                              </td>
+                              <td>
+                                <strong>{ex?.title || 'Unknown Exam'}</strong>
+                                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Submitted: {session.submitTime ? new Date(session.submitTime).toLocaleString() : 'N/A'}</div>
+                              </td>
+                              <td>
+                                <span className="badge badge-info">{sub?.name || 'Subject'}</span>
+                              </td>
+                              <td>
+                                <strong style={{ fontSize: '1rem', color: isPass ? 'var(--color-success)' : 'var(--color-danger)' }}>
+                                  {session.finalScore} / {ex?.totalMarks ?? 0} pts
+                                </strong>
+                              </td>
+                              <td>
+                                <strong>{scorePct}%</strong>
+                              </td>
+                              <td>
+                                <span className={`badge ${session.isGraded ? 'badge-success' : 'badge-warning'}`}>
+                                  {session.isGraded ? 'Graded' : 'Descriptive Pending'}
+                                </span>
+                              </td>
+                              <td>
+                                {session.tabSwitchCount > 0 || session.fullscreenExitCount > 0 ? (
+                                  <div style={{ fontSize: '0.8rem', color: 'var(--color-danger)' }}>
+                                    {session.tabSwitchCount > 0 && <div>{session.tabSwitchCount} Tab Switches</div>}
+                                    {session.fullscreenExitCount > 0 && <div>{session.fullscreenExitCount} Fullscreen Exits</div>}
+                                  </div>
+                                ) : (
+                                  <span className="badge badge-success">Clean Session</span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               );
             })()}
