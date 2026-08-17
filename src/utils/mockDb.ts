@@ -377,7 +377,7 @@ const initialDB: MockDB = {
       id: 'notif-1',
       userId: 'stud-1',
       title: 'Upcoming Midterm Exam',
-      message: 'Your Data Structures Midterm 2026 is scheduled for today. Make sure you have a working camera.',
+      message: 'Your Data Structures Midterm 2026 is scheduled for today.',
       date: '2026-08-01T08:00:00Z',
       isRead: false,
       type: 'exam_reminder'

@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
-  BookOpen, Play, CheckCircle2, AlertCircle, Clock, Shield, Camera, 
+  BookOpen, Play, CheckCircle2, AlertCircle, Clock, Shield, 
   ChevronLeft, ChevronRight, Bookmark, Award, Download, UserCheck, Edit
 } from 'lucide-react';
 import { 
@@ -27,23 +27,6 @@ export const StudentModule: React.FC<StudentModuleProps> = ({ currentUser, addTo
   const [viewingInstructions, setViewingInstructions] = useState<Exam | null>(null);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
 
-  // Proctoring States
-  const [camStream, setCamStream] = useState<MediaStream | null>(null);
-  const [proctorStatus, setProctorStatus] = useState<'normal' | 'no_face' | 'multi_face'>('normal');
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const setVideoRef = useCallback((node: HTMLVideoElement | null) => {
-    if (node) {
-      videoRef.current = node;
-      if (camStream) {
-        node.srcObject = camStream;
-      }
-    }
-  }, [camStream]);
-
-  // Security Toggles for manual simulation of cheating
-  const [simNoFace, setSimNoFace] = useState(false);
-  const [simMultiFace, setSimMultiFace] = useState(false);
-
   // Fullscreen requirement state
   const [isFullscreenActive, setIsFullscreenActive] = useState(false);
 
@@ -59,40 +42,6 @@ export const StudentModule: React.FC<StudentModuleProps> = ({ currentUser, addTo
   const reloadState = () => {
     setDb(loadDB());
   };
-
-  // --- WEBCAM MONITORING ---
-  const startCamera = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-      setCamStream(stream);
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-      }
-      return stream;
-    } catch (err) {
-      console.warn('Webcam access failed/denied');
-      return null;
-    }
-  };
-
-  const stopCamera = () => {
-    if (camStream) {
-      camStream.getTracks().forEach((track) => track.stop());
-      setCamStream(null);
-    }
-  };
-
-  useEffect(() => {
-    return () => {
-      stopCamera();
-    };
-  }, []);
-
-  useEffect(() => {
-    if (activeExam && camStream && videoRef.current) {
-      videoRef.current.srcObject = camStream;
-    }
-  }, [activeExam, camStream]);
 
   // --- REAL SECURITY: DETECT TAB SWITCHING & COPY PASTE BLOCK ---
   useEffect(() => {
@@ -198,22 +147,6 @@ export const StudentModule: React.FC<StudentModuleProps> = ({ currentUser, addTo
     reloadState();
   };
 
-  // --- PROCTORING CHEATING SIMULATION TRIGGERS ---
-  useEffect(() => {
-    if (!activeExam) return;
-
-    if (simNoFace) {
-      setProctorStatus('no_face');
-      logSecurityEvent('face_not_detected', 'No face detected in video stream.');
-      addToast('Proctor Alert: Camera cannot detect your face.', 'warning');
-    } else if (simMultiFace) {
-      setProctorStatus('multi_face');
-      logSecurityEvent('multiple_faces_detected', 'Multiple faces detected in webcam frame.');
-      addToast('Proctor Alert: Multiple people detected in camera feed.', 'error');
-    } else {
-      setProctorStatus('normal');
-    }
-  }, [simNoFace, simMultiFace]);
 
   // --- TIMER CONTROLLER ---
   useEffect(() => {
@@ -250,27 +183,6 @@ export const StudentModule: React.FC<StudentModuleProps> = ({ currentUser, addTo
   const handleStartExam = async () => {
     if (!viewingInstructions) return;
     const exam = viewingInstructions;
-
-    // Enforce Camera Proctoring Check
-    let currentStream = camStream;
-    const isSecureContext = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
-
-    if (!isSecureContext) {
-      addToast('HTTP context detected: Using simulated proctoring feed.', 'info');
-    } else {
-      if (!currentStream) {
-        currentStream = await startCamera();
-        if (!currentStream) {
-          addToast('Anti-Cheat Check: A working camera is required to take this exam. Please enable camera access and try again.', 'error');
-          return;
-        }
-      }
-    }
-    setTimeout(() => {
-      if (videoRef.current && currentStream) {
-        videoRef.current.srcObject = currentStream;
-      }
-    }, 100);
 
     // Load and optionally randomize questions
     const qList = db.questions.filter((q) => exam.questionIds.includes(q.id));
@@ -443,7 +355,6 @@ export const StudentModule: React.FC<StudentModuleProps> = ({ currentUser, addTo
     setExamSession(null);
     setExamQuestions([]);
     setIsReviewingResponses(false);
-    stopCamera();
     reloadState();
 
     const dbData = loadDB();
@@ -534,44 +445,7 @@ export const StudentModule: React.FC<StudentModuleProps> = ({ currentUser, addTo
                 <span className="badge badge-info" style={{ marginTop: '6px' }}>Proctoring Enabled</span>
               </div>
 
-              {/* Live Proctoring Webcam Box */}
-              <div className="proctor-cam-container" style={{ position: 'relative', overflow: 'hidden' }}>
-                {camStream ? (
-                  <video ref={setVideoRef} className="proctor-video" autoPlay playsInline muted />
-                ) : (
-                  <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#1c1c24', color: 'var(--text-secondary)', gap: '8px' }}>
-                    <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: 'var(--color-success)', animation: 'blink 1.5s infinite alternate' }} />
-                    <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>Mock AI Proctor Active</span>
-                  </div>
-                )}
-                <div className="proctor-overlay">
-                  {/* Bounding box simulation overlays */}
-                  <div className={`face-box ${proctorStatus !== 'normal' ? 'warning' : ''}`} style={{ top: '35px', left: '60px', width: '90px', height: '100px' }} />
-                </div>
-                <div className={`proctor-indicator ${proctorStatus !== 'normal' ? 'warning' : ''}`}>
-                  <Camera size={12} />
-                  <span>
-                    {proctorStatus === 'normal' && 'Proctor: OK'}
-                    {proctorStatus === 'no_face' && 'No Face Detected'}
-                    {proctorStatus === 'multi_face' && 'Multi-Face detected'}
-                  </span>
-                </div>
-              </div>
 
-              {/* Proctor Simulator Actions for user testing */}
-              <div style={{ background: 'var(--bg-tertiary)', padding: '12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)', marginBottom: '16px' }}>
-                <p style={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--text-secondary)', marginBottom: '8px' }}>Proctor Tester (Mock Detections)</p>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <label style={{ fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
-                    <input type="checkbox" checked={simNoFace} onChange={(e) => { setSimNoFace(e.target.checked); setSimMultiFace(false); }} />
-                    Simulate: No Face
-                  </label>
-                  <label style={{ fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
-                    <input type="checkbox" checked={simMultiFace} onChange={(e) => { setSimMultiFace(e.target.checked); setSimNoFace(false); }} />
-                    Simulate: Multiple Faces
-                  </label>
-                </div>
-              </div>
 
               {/* Timer Panel */}
               <div className="glass-panel" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '16px', marginBottom: '20px', borderLeft: timeLeft < 300 ? '4px solid var(--color-danger)' : '4px solid var(--color-success)' }}>
@@ -992,7 +866,6 @@ export const StudentModule: React.FC<StudentModuleProps> = ({ currentUser, addTo
                 <ul style={{ paddingLeft: '20px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   <li><strong>Fullscreen Lockdown</strong>: The exam forces fullscreen mode. Navigating away or exiting fullscreen triggers warnings.</li>
                   <li><strong>Browser Logs</strong>: Tab switching, page blur, right-clicks, and text copying will be blocked and recorded in reports.</li>
-                  <li><strong>Webcam Proctoring</strong>: A live camera proctor feed is displayed. Face presence, head positions, and multiple faces are tracked.</li>
                   <li><strong>Timing Constraints</strong>: Once launched, the timer cannot be paused. The test will auto-submit when the duration ends.</li>
                 </ul>
               </div>
@@ -1004,7 +877,7 @@ export const StudentModule: React.FC<StudentModuleProps> = ({ currentUser, addTo
                   onChange={(e) => setAgreedToTerms(e.target.checked)} 
                   style={{ marginTop: '3px' }}
                 />
-                <span>I understand and agree to the exam security parameters. I authorize camera monitoring for the duration of this exam.</span>
+                <span>I understand and agree to the exam security parameters for the duration of this exam.</span>
               </label>
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
