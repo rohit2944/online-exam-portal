@@ -928,11 +928,16 @@ export const ExaminerModule: React.FC<ExaminerModuleProps> = ({ currentUser, add
               
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                 <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
                     <label className="form-label" style={{ marginBottom: 0 }}>Subject Mapping</label>
-                    <span onClick={() => setSubjectModalOpen(true)} style={{ fontSize: '0.75rem', color: 'var(--accent-primary)', cursor: 'pointer', fontWeight: 600 }}>
-                      + Set New Subject
-                    </span>
+                    <button 
+                      type="button" 
+                      className="btn btn-secondary btn-sm" 
+                      onClick={() => setSubjectModalOpen(true)}
+                      style={{ padding: '3px 8px', fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                    >
+                      <Plus size={12} /> Add Subject Name
+                    </button>
                   </div>
                   <select 
                     className="form-input" 
@@ -1330,7 +1335,17 @@ export const ExaminerModule: React.FC<ExaminerModuleProps> = ({ currentUser, add
               </div>
 
               <div>
-                <label className="form-label">Target Subject *</label>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                  <label className="form-label" style={{ marginBottom: 0 }}>Target Subject *</label>
+                  <button 
+                    type="button" 
+                    className="btn btn-secondary btn-sm" 
+                    onClick={() => setSubjectModalOpen(true)}
+                    style={{ padding: '3px 8px', fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                  >
+                    <Plus size={12} /> Add Subject Name
+                  </button>
+                </div>
                 <select
                   className="form-input"
                   value={newExamSubjectId}
