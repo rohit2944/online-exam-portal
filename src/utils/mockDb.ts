@@ -394,18 +394,22 @@ export const loadDB = (): MockDB => {
   }
   try {
     const db = JSON.parse(data) as MockDB;
-    // Auto-migrate check: enforce all-MCQ questions schema
-    const exUser = db.users.find((u) => u.id === 'exam-1');
-    const hasNewExam = db.exams.some((e) => e.id === 'exam-c2');
-    const allMcq = db.questions.every((q) => q.type === 'mcq');
-    if (!exUser || !exUser.teacherId || !hasNewExam || !allMcq) {
+    if (!db || !Array.isArray(db.users)) {
       saveDB(initialDB);
       return initialDB;
     }
-    db.exams.forEach((ex) => {
-      ex.durationMinutes = 30;
-      ex.randomizeQuestions = true;
+    // Guarantee default accounts exist if missing
+    initialDB.users.forEach((initU) => {
+      if (!db.users.some((u) => u.id === initU.id || u.username.toLowerCase() === initU.username.toLowerCase())) {
+        db.users.push(initU);
+      }
     });
+    if (Array.isArray(db.exams)) {
+      db.exams.forEach((ex) => {
+        ex.durationMinutes = 30;
+        ex.randomizeQuestions = true;
+      });
+    }
     return db;
   } catch (e) {
     saveDB(initialDB);

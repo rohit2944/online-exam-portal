@@ -25,14 +25,20 @@ export const AuthModule: React.FC<AuthModuleProps> = ({ onLoginSuccess, addToast
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!username || !password) {
+    const cleanUsername = username.trim();
+    const cleanPassword = password.trim();
+
+    if (!cleanUsername || !cleanPassword) {
       addToast('Please enter both username and password.', 'error');
       return;
     }
 
     const db = loadDB();
     const user = db.users.find(
-      (u) => (u.username === username || u.email === username) && u.passwordHash === password
+      (u) =>
+        (u.username.trim().toLowerCase() === cleanUsername.toLowerCase() ||
+         u.email.trim().toLowerCase() === cleanUsername.toLowerCase()) &&
+        u.passwordHash === cleanPassword
     );
 
     if (!user) {
@@ -46,8 +52,9 @@ export const AuthModule: React.FC<AuthModuleProps> = ({ onLoginSuccess, addToast
     }
 
     if (user.role === 'examiner') {
-      const correctCode = user.teacherId || 'T-101';
-      if (!teacherId || (teacherId !== correctCode && teacherId !== 'TEACHER2026')) {
+      const cleanTeacherId = teacherId.trim();
+      const correctCode = (user.teacherId || 'T-101').trim();
+      if (!cleanTeacherId || (cleanTeacherId.toLowerCase() !== correctCode.toLowerCase() && cleanTeacherId !== 'TEACHER2026')) {
         addToast('Invalid Teacher ID. Examiners must enter a valid Teacher ID.', 'error');
         return;
       }
@@ -67,31 +74,37 @@ export const AuthModule: React.FC<AuthModuleProps> = ({ onLoginSuccess, addToast
 
   const handleRegister = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!username || !email || !password || !profileName) {
+    const cleanUsername = username.trim();
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanPassword = password.trim();
+    const cleanProfileName = profileName.trim();
+
+    if (!cleanUsername || !cleanEmail || !cleanPassword || !cleanProfileName) {
       addToast('All fields are required.', 'error');
       return;
     }
 
     const db = loadDB();
-    if (db.users.some((u) => u.username === username)) {
+    if (db.users.some((u) => u.username.trim().toLowerCase() === cleanUsername.toLowerCase())) {
       addToast('Username already exists.', 'error');
       return;
     }
-    if (db.users.some((u) => u.email === email)) {
+    if (db.users.some((u) => u.email.trim().toLowerCase() === cleanEmail)) {
       addToast('Email already exists.', 'error');
       return;
     }
 
     const newUser: DBUser = {
       id: `${role}-${Date.now()}`,
-      username,
-      passwordHash: password,
-      email,
+      username: cleanUsername,
+      passwordHash: cleanPassword,
+      email: cleanEmail,
       role,
       isActive: true,
       isEmailVerified: true, // Auto verified
       isTwoFactorEnabled: false,
-      profileName,
+      profileName: cleanProfileName,
+      teacherId: role === 'examiner' ? (teacherId.trim() || 'T-101') : undefined,
       registrationDate: new Date().toISOString().split('T')[0]
     };
 
@@ -101,8 +114,8 @@ export const AuthModule: React.FC<AuthModuleProps> = ({ onLoginSuccess, addToast
 
     addToast('Registration successful! You can now log in.', 'success');
     setView('login');
-    setUsername(username);
-    setPassword(password);
+    setUsername(cleanUsername);
+    setPassword(cleanPassword);
   };
 
   const handleVerifyEmail = (e: React.FormEvent) => {
@@ -243,7 +256,10 @@ export const AuthModule: React.FC<AuthModuleProps> = ({ onLoginSuccess, addToast
 
             {(() => {
               const dbCheck = loadDB();
-              const matched = dbCheck.users.find((u) => u.username === username || u.email === username);
+              const cleanU = username.trim().toLowerCase();
+              const matched = dbCheck.users.find(
+                (u) => u.username.trim().toLowerCase() === cleanU || u.email.trim().toLowerCase() === cleanU
+              );
               if (matched?.role === 'examiner') {
                 return (
                   <div>
