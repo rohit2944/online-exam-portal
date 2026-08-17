@@ -4,7 +4,7 @@ import {
   HelpCircle, CheckSquare, Award, ArrowRight
 } from 'lucide-react';
 import { 
-  loadDB, updateDB, type User, type Question, type QuestionType, type Exam, type ExamSession 
+  loadDB, updateDB, type User, type Question, type QuestionType, type Exam, type ExamSession, type Subject
 } from '../../utils/mockDb';
 
 interface ExaminerModuleProps {
@@ -14,7 +14,7 @@ interface ExaminerModuleProps {
 
 export const ExaminerModule: React.FC<ExaminerModuleProps> = ({ currentUser, addToast }) => {
   const [db, setDb] = useState(loadDB());
-  const [activeSubTab, setActiveSubTab] = useState<'questions' | 'exams' | 'grading' | 'reports'>('questions');
+  const [activeSubTab, setActiveSubTab] = useState<'subjects' | 'questions' | 'exams' | 'grading' | 'reports'>('subjects');
 
   // Reload local state from MockDB
   const reloadState = () => {
@@ -25,6 +25,18 @@ export const ExaminerModule: React.FC<ExaminerModuleProps> = ({ currentUser, add
   const mySubjects = db.subjects.filter((s) => s.examinerIds.includes(currentUser.id));
   const effectiveSubjects = mySubjects.length > 0 ? mySubjects : db.subjects;
   const effectiveSubjectIds = effectiveSubjects.map((s) => s.id);
+
+  // Subject Creation State
+  const [subjectModalOpen, setSubjectModalOpen] = useState(false);
+  const [newSubName, setNewSubName] = useState('');
+  const [newSubCode, setNewSubCode] = useState('');
+  const [newSubCourseId, setNewSubCourseId] = useState(db.courses[0]?.id || 'course-1');
+
+  // Exam Creation State
+  const [examModalOpen, setExamModalOpen] = useState(false);
+  const [newExamTitle, setNewExamTitle] = useState('');
+  const [newExamDesc, setNewExamDesc] = useState('');
+  const [newExamSubjectId, setNewExamSubjectId] = useState(effectiveSubjectIds[0] || '');
 
   // Subject filter state for Results & Reports
   const [reportSubjectFilter, setReportSubjectFilter] = useState<string>('all');
@@ -57,6 +69,76 @@ export const ExaminerModule: React.FC<ExaminerModuleProps> = ({ currentUser, add
   // Import State
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [importJSON, setImportJSON] = useState('');
+
+  // --- SUBJECT ACTIONS ---
+  const handleCreateSubject = (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanName = newSubName.trim();
+    const cleanCode = newSubCode.trim().toUpperCase();
+
+    if (!cleanName || !cleanCode) {
+      addToast('Please enter both Subject Name and Subject Code.', 'error');
+      return;
+    }
+
+    const newSubject: Subject = {
+      id: `sub-${Date.now()}`,
+      name: cleanName,
+      code: cleanCode,
+      description: cleanName,
+      courseId: newSubCourseId || (db.courses[0]?.id || 'course-1'),
+      examinerIds: [currentUser.id]
+    };
+
+    updateDB((currentDb) => {
+      currentDb.subjects.push(newSubject);
+    });
+
+    addToast(`Subject "${cleanName}" (${cleanCode}) created successfully!`, 'success');
+    setNewSubName('');
+    setNewSubCode('');
+    setSubjectModalOpen(false);
+    setQSubjectId(newSubject.id);
+    reloadState();
+  };
+
+  const handleCreateExam = (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanTitle = newExamTitle.trim();
+    if (!cleanTitle || !newExamSubjectId) {
+      addToast('Please enter an exam title and select a subject.', 'error');
+      return;
+    }
+
+    const newExam: Exam = {
+      id: `exam-${Date.now()}`,
+      subjectId: newExamSubjectId,
+      title: cleanTitle,
+      description: newExamDesc.trim() || 'Online Proctored Test',
+      durationMinutes: 30,
+      totalMarks: 20,
+      passingMarks: 10,
+      isEnabled: true,
+      isPublished: true,
+      questionIds: [],
+      randomizeQuestions: true,
+      randomizeOptions: true,
+      negativeMarkingEnabled: false,
+      negativeMarkRate: 0.25,
+      showOnePerPage: true,
+      dateScheduled: new Date().toISOString()
+    };
+
+    updateDB((currentDb) => {
+      currentDb.exams.push(newExam);
+    });
+
+    addToast(`Exam "${cleanTitle}" created successfully! Use "Link Questions" to add questions.`, 'success');
+    setNewExamTitle('');
+    setNewExamDesc('');
+    setExamModalOpen(false);
+    reloadState();
+  };
 
   // --- EXAM COMPILER STATES ---
   const [builderModalOpen, setBuilderModalOpen] = useState(false);
@@ -369,6 +451,13 @@ export const ExaminerModule: React.FC<ExaminerModuleProps> = ({ currentUser, add
 
         <ul className="sidebar-menu">
           <li 
+            className={`sidebar-item ${activeSubTab === 'subjects' ? 'active' : ''}`}
+            onClick={() => setActiveSubTab('subjects')}
+          >
+            <BookOpen size={18} />
+            My Subjects
+          </li>
+          <li 
             className={`sidebar-item ${activeSubTab === 'questions' ? 'active' : ''}`}
             onClick={() => setActiveSubTab('questions')}
           >
@@ -417,12 +506,82 @@ export const ExaminerModule: React.FC<ExaminerModuleProps> = ({ currentUser, add
       {/* Main Panel Content */}
       <div className="main-content">
         
+        {/* SUBJECTS SUBTAB */}
+        {activeSubTab === 'subjects' && (
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+              <div>
+                <h1 style={{ fontSize: '1.75rem', fontWeight: 800 }}>Subject Management</h1>
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                  Set up and manage academic subjects assigned to your examiner profile.
+                </p>
+              </div>
+              <button className="btn btn-primary" onClick={() => setSubjectModalOpen(true)}>
+                <Plus size={16} /> Set New Subject
+              </button>
+            </div>
+
+            {effectiveSubjects.length === 0 ? (
+              <div className="glass-panel" style={{ padding: '40px', textAlign: 'center' }}>
+                <BookOpen size={48} style={{ color: 'var(--text-tertiary)', marginBottom: '16px' }} />
+                <h3>No subjects found</h3>
+                <p style={{ color: 'var(--text-secondary)', marginTop: '4px' }}>Click "Set New Subject" to create your first subject.</p>
+                <button className="btn btn-primary" style={{ marginTop: '16px' }} onClick={() => setSubjectModalOpen(true)}>
+                  <Plus size={16} /> Set New Subject
+                </button>
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
+                {effectiveSubjects.map((sub) => {
+                  const course = db.courses.find((c) => c.id === sub.courseId);
+                  const qCount = db.questions.filter((q) => q.subjectId === sub.id).length;
+                  const exCount = db.exams.filter((e) => e.subjectId === sub.id).length;
+
+                  return (
+                    <div key={sub.id} className="glass-panel" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <div>
+                          <span className="badge badge-info" style={{ fontSize: '0.75rem', marginBottom: '8px', display: 'inline-block' }}>
+                            {sub.code}
+                          </span>
+                          <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#fff' }}>{sub.name}</h3>
+                          <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                            Department: <strong>{course?.name || 'General Course'}</strong>
+                          </p>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', gap: '20px', borderTop: '1px solid var(--border-color)', paddingTop: '14px', marginTop: '4px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                        <div>
+                          <strong style={{ color: '#fff', fontSize: '1.1rem' }}>{qCount}</strong> Questions
+                        </div>
+                        <div>
+                          <strong style={{ color: '#fff', fontSize: '1.1rem' }}>{exCount}</strong> Exams
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                        <button className="btn btn-secondary btn-sm" style={{ flexGrow: 1 }} onClick={() => { setQSubjectId(sub.id); setActiveSubTab('questions'); }}>
+                          Manage Questions
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* QUESTIONS SUBTAB */}
         {activeSubTab === 'questions' && (
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
               <h1 style={{ fontSize: '1.75rem', fontWeight: 800 }}>Question Bank Editor</h1>
               <div style={{ display: 'flex', gap: '12px' }}>
+                <button className="btn btn-secondary" onClick={() => setSubjectModalOpen(true)}>
+                  <Plus size={16} /> Set New Subject
+                </button>
                 <button className="btn btn-secondary" onClick={() => setImportModalOpen(true)}>
                   <FileSpreadsheet size={16} /> Import JSON
                 </button>
@@ -494,7 +653,17 @@ export const ExaminerModule: React.FC<ExaminerModuleProps> = ({ currentUser, add
         {/* EXAM COMPILER SUBTAB */}
         {activeSubTab === 'exams' && (
           <div>
-            <h1 style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: '24px' }}>Exam Compiler Dashboard</h1>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+              <h1 style={{ fontSize: '1.75rem', fontWeight: 800 }}>Exam Compiler Dashboard</h1>
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <button className="btn btn-secondary" onClick={() => setSubjectModalOpen(true)}>
+                  <Plus size={16} /> Set New Subject
+                </button>
+                <button className="btn btn-primary" onClick={() => setExamModalOpen(true)}>
+                  <Plus size={16} /> Create Exam
+                </button>
+              </div>
+            </div>
 
             <div className="table-container glass-panel">
               <table className="custom-table">
@@ -759,14 +928,19 @@ export const ExaminerModule: React.FC<ExaminerModuleProps> = ({ currentUser, add
               
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                 <div>
-                  <label className="form-label">Subject Mapping</label>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                    <label className="form-label" style={{ marginBottom: 0 }}>Subject Mapping</label>
+                    <span onClick={() => setSubjectModalOpen(true)} style={{ fontSize: '0.75rem', color: 'var(--accent-primary)', cursor: 'pointer', fontWeight: 600 }}>
+                      + Set New Subject
+                    </span>
+                  </div>
                   <select 
                     className="form-input" 
                     value={qSubjectId}
                     onChange={(e) => setQSubjectId(e.target.value)}
                   >
-                    {mySubjects.map((sub) => (
-                      <option key={sub.id} value={sub.id}>{sub.name}</option>
+                    {effectiveSubjects.map((sub) => (
+                      <option key={sub.id} value={sub.id}>{sub.name} ({sub.code})</option>
                     ))}
                   </select>
                 </div>
@@ -1068,6 +1242,116 @@ export const ExaminerModule: React.FC<ExaminerModuleProps> = ({ currentUser, add
               <button type="button" className="btn btn-secondary" onClick={() => setGradingSession(null)}>Cancel</button>
               <button type="button" className="btn btn-primary" onClick={submitGrading}>Publish Evaluation Grade</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* CREATE NEW SUBJECT MODAL */}
+      {subjectModalOpen && (
+        <div className="modal-overlay">
+          <div className="modal-content glass-panel" style={{ maxWidth: '500px' }}>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '20px' }}>Set New Academic Subject</h3>
+            
+            <form onSubmit={handleCreateSubject} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div>
+                <label className="form-label">Subject Name *</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="e.g. Artificial Intelligence & Machine Learning"
+                  value={newSubName}
+                  onChange={(e) => setNewSubName(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="form-label">Subject Code *</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="e.g. CS-401"
+                  value={newSubCode}
+                  onChange={(e) => setNewSubCode(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="form-label">Department / Course</label>
+                <select
+                  className="form-input"
+                  value={newSubCourseId}
+                  onChange={(e) => setNewSubCourseId(e.target.value)}
+                >
+                  {db.courses.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '12px' }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setSubjectModalOpen(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary">Save Subject</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* CREATE NEW EXAM MODAL FOR EXAMINER */}
+      {examModalOpen && (
+        <div className="modal-overlay">
+          <div className="modal-content glass-panel" style={{ maxWidth: '520px' }}>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '20px' }}>Create New Examination Paper</h3>
+            
+            <form onSubmit={handleCreateExam} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div>
+                <label className="form-label">Exam Title *</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="e.g. Artificial Intelligence Midterm 2026"
+                  value={newExamTitle}
+                  onChange={(e) => setNewExamTitle(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="form-label">Description</label>
+                <textarea
+                  className="form-input"
+                  rows={3}
+                  placeholder="Brief exam instructions or syllabus topics..."
+                  value={newExamDesc}
+                  onChange={(e) => setNewExamDesc(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label className="form-label">Target Subject *</label>
+                <select
+                  className="form-input"
+                  value={newExamSubjectId}
+                  onChange={(e) => setNewExamSubjectId(e.target.value)}
+                  required
+                >
+                  {effectiveSubjects.map((s) => (
+                    <option key={s.id} value={s.id}>{s.name} ({s.code})</option>
+                  ))}
+                </select>
+              </div>
+
+              <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', background: 'var(--bg-tertiary)', padding: '12px', borderRadius: '4px', border: '1px solid var(--border-color)' }}>
+                ⏱️ Exam duration defaults to <strong>30 minutes</strong> and question order will be <strong>randomized</strong>.
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '12px' }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setExamModalOpen(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary">Create Exam</button>
+              </div>
+            </form>
           </div>
         </div>
       )}

@@ -24,6 +24,7 @@ export interface Course {
 export interface Subject {
   id: string;
   name: string;
+  code?: string;
   courseId: string;
   description: string;
   examinerIds: string[]; // Assigned examiners
