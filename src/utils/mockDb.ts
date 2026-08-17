@@ -125,7 +125,7 @@ export interface MockDB {
   notifications: Notification[];
 }
 
-const STORAGE_KEY = 'online_exam_portal_db';
+const STORAGE_KEY = 'online_exam_portal_db_v30m';
 
 const initialDB: MockDB = {
   users: [
@@ -312,13 +312,13 @@ const initialDB: MockDB = {
       subjectId: 'subject-1',
       title: 'Data Structures Midterm 2026',
       description: 'Comprehensive MCQ test covering stacks, queues, hash tables, and tree structures.',
-      durationMinutes: 45,
+      durationMinutes: 30,
       totalMarks: 29,
       passingMarks: 15,
       isEnabled: true,
       isPublished: true,
       questionIds: ['q-1', 'q-2', 'q-3', 'q-4', 'q-5', 'q-6', 'q-7'],
-      randomizeQuestions: false,
+      randomizeQuestions: true,
       randomizeOptions: true,
       negativeMarkingEnabled: true,
       negativeMarkRate: 0.25,
@@ -330,7 +330,7 @@ const initialDB: MockDB = {
       subjectId: 'subject-2',
       title: 'Algorithms Final Exam 2026',
       description: 'Comprehensive evaluation covering search strategies, sorting algorithms, and dynamic programming.',
-      durationMinutes: 60,
+      durationMinutes: 30,
       totalMarks: 20,
       passingMarks: 10,
       isEnabled: true,
@@ -402,6 +402,10 @@ export const loadDB = (): MockDB => {
       saveDB(initialDB);
       return initialDB;
     }
+    db.exams.forEach((ex) => {
+      ex.durationMinutes = 30;
+      ex.randomizeQuestions = true;
+    });
     return db;
   } catch (e) {
     saveDB(initialDB);

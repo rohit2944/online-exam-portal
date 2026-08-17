@@ -53,8 +53,8 @@ export const AdminModule: React.FC<AdminModuleProps> = ({ currentUser, addToast 
   const [formExamDuration, setFormExamDuration] = useState(30);
   const [formExamPassing, setFormExamPassing] = useState(10);
   const [formExamTotal, setFormExamTotal] = useState(20);
-  const [formExamRandomQ, setFormExamRandomQ] = useState(false);
-  const [formExamRandomO, setFormExamRandomO] = useState(false);
+  const [formExamRandomQ, setFormExamRandomQ] = useState(true);
+  const [formExamRandomO, setFormExamRandomO] = useState(true);
   const [formExamNegActive, setFormExamNegActive] = useState(false);
   const [formExamNegRate, setFormExamNegRate] = useState(0.25);
   const [formExamOnePage, setFormExamOnePage] = useState(true);
@@ -303,10 +303,10 @@ export const AdminModule: React.FC<AdminModuleProps> = ({ currentUser, addToast 
       setFormExamTitle('');
       setFormExamDesc('');
       setFormExamSubject(defaultSubjectId);
-      setFormExamDuration(45);
+      setFormExamDuration(30);
       setFormExamPassing(15);
       setFormExamTotal(20);
-      setFormExamRandomQ(false);
+      setFormExamRandomQ(true);
       setFormExamRandomO(true);
       setFormExamNegActive(false);
       setFormExamNegRate(0.25);

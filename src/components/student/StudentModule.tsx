@@ -184,12 +184,10 @@ export const StudentModule: React.FC<StudentModuleProps> = ({ currentUser, addTo
     if (!viewingInstructions) return;
     const exam = viewingInstructions;
 
-    // Load and optionally randomize questions
+    // Load and randomize questions for each candidate session
     const qList = db.questions.filter((q) => exam.questionIds.includes(q.id));
     let processedQs = [...qList];
-    if (exam.randomizeQuestions) {
-      processedQs.sort(() => Math.random() - 0.5);
-    }
+    processedQs.sort(() => Math.random() - 0.5);
 
     // Initialize responses structure
     const initialResponses: AnswerResponse[] = processedQs.map((q) => {
